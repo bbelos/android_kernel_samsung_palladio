@@ -3,7 +3,7 @@
 set -e
 
 #export CROSS_COMPILE="/usr/local/arm-2009q3/bin/arm-none-eabi-"
-export CROSS_COMPILE="/home/sisio/work/Android/cm9/prebuilt/linux-x86/toolchain/arm-eabi-4.4.3/bin/arm-eabi-"
+export CROSS_COMPILE="/home/oisis/Android/cm9/prebuilt/linux-x86/toolchain/arm-eabi-4.4.3/bin/arm-eabi-"
 export KBUILD_BUILD_VERSION="OiSiS-test-v02"
 #export LOCALVERSION="-G1XXKPN-CL562447"
 
