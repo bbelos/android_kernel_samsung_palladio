@@ -2,8 +2,9 @@
 
 set -e
 
-export CROSS_COMPILE="/home/oisis/Android/cm9/prebuilt/linux-x86/toolchain/arm-eabi-4.4.3/bin/arm-eabi-"
-export KBUILD_BUILD_VERSION="OiSiS-test-v02"
+export CROSS_COMPILE="/home/Android/cm9/prebuilt/linux-x86/toolchain/arm-eabi-4.4.3/bin/arm-eabi-"
+export KBUILD_BUILD_VERSION="OiSiS"
+export LOCALVERSION="-beta-03"
 
 #which ccache >/dev/null 2>&1
 #if [ $? -eq 0 ]; then
@@ -16,7 +17,7 @@ usage()
 {
 	echo "Usage: build.sh <model> <project>"
 	echo "Usage: build.sh clean"
-	echo "  eg. build.sh ypg1 cm7"
+	echo "  eg. build.sh palladio cm9"
 	exit 1
 }
 
@@ -33,38 +34,39 @@ fi
 model="$1"
 project="$2"
 
-if [ ! -f "arch/arm/configs/tdm_${model}_defconfig" ]; then
+if [ ! -f "arch/arm/configs/cyanogenmod_${model}_defconfig" ]; then
 	echo "Cannot find config"
 	exit 1
 fi
-if [ ! -d "../initramfs-${project}" ]; then
+if [ ! -d "./initramfs" ]; then
 	echo "Cannot find initramfs"
 	exit 1
 fi
 
 if [ ! -f ".config" -o "$model" != "$lastmodel" ]; then
-	make tdm_${model}_defconfig
+	make cyanogenmod_${model}_defconfig
 fi
 
-initramfs_source=$(grep "^CONFIG_INITRAMFS_SOURCE" .config | \
+initramfsdir=$(grep "^CONFIG_INITRAMFS_SOURCE" .config | \
 	cut -d'=' -f2 | sed 's/"//g')
-if [ -z "$initramfs_source" ]; then
+if [ -z "$initramfsdir" ]; then
 	echo "Cannot find initramfs dir in config"
 	exit 1
 fi
 
-rm -f usr/initramfs_data.cpio
-
-# XXX: check whether file or dir
-initramfs_dir=$(dirname $initramfs_source)
-
-rm -rf "$initramfs_dir"
-mkdir -p "$initramfs_dir"
+rm -rf "$initramfsdir"
+mkdir -p "$initramfsdir"
 if [ -d "initramfs/common" ]; then
-	cp -a initramfs/common/* "$initramfs_source"
+	cp -a initramfs/common/* "$initramfsdir"
 fi
-cp -a initramfs/${project}/* "$initramfs_dir"
+cp -a initramfs/${project}/* "$initramfsdir"
 
+make -j${cpus}
+mkdir -p "$initramfsdir/lib/modules"
+cp $(find . -name "*.ko" | grep -v "$initramfsdir") "$initramfsdir/lib/modules"
 make -j${cpus}
 cp arch/arm/boot/zImage kernel-${model}-${project}.bin
 md5sum kernel-${model}-${project}.bin
+cp arch/arm/boot/zImage ./
+tar -cf ./zImage.tar zImage
+rm -f ./zImage
