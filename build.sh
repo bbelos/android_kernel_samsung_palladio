@@ -2,6 +2,7 @@
 
 set -e
 
+# Adjust path to toolchain!!
 export CROSS_COMPILE="/home/Android/cm9/prebuilt/linux-x86/toolchain/arm-eabi-4.4.3/bin/arm-eabi-"
 export KBUILD_BUILD_VERSION="OiSiS"
 export LOCALVERSION="-beta-03"
