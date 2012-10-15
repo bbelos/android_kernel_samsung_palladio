@@ -3137,7 +3137,6 @@ static struct platform_device *aries_devices[] __initdata = {
 	&sec_device_btsleep,
 	&ram_console_device,
 
-	&s5p_device_ace,
 #ifdef CONFIG_SND_S5P_RP
 	&s5p_device_rp,
 #endif
