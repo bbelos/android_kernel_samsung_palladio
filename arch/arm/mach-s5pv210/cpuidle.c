@@ -276,7 +276,7 @@ static void s5p_enter_didle(void)
 	/* GPIO Power Down Control */
 	s5p_gpio_pdn_conf();
 	save_eint_mask = __raw_readl(S5P_EINT_WAKEUP_MASK);
-	__raw_writel(0xDFBFFFFF, S5P_EINT_WAKEUP_MASK);
+	__raw_writel(0xFFBFFFFF, S5P_EINT_WAKEUP_MASK);
 
 	/* Clear wakeup status register */
 	tmp = __raw_readl(S5P_WAKEUP_STAT);
@@ -373,12 +373,13 @@ static int s5p_idle_bm_check(void)
 		return 1;
 #endif
 #ifdef CONFIG_RFKILL
-	else if (bt_is_running)
+	else if(bt_is_running)
 		return 1;
 #endif
 	else
 		return 0;
 }
+
 extern void bt_uart_rts_ctrl(int flag);
 
 /* Actual code that puts the SoC in different idle states */
@@ -389,7 +390,7 @@ static int s5p_enter_didle_state(struct cpuidle_device *dev,
 	int idle_time;
 
 #ifdef CONFIG_RFKILL
-	/* BT-UART RTS Control (RTS High) */
+	/* BT-UART RTS Control (RTS Low) */
 	bt_uart_rts_ctrl(1);
 #endif
 
@@ -401,7 +402,6 @@ static int s5p_enter_didle_state(struct cpuidle_device *dev,
 	local_irq_enable();
 	idle_time = (after.tv_sec - before.tv_sec) * USEC_PER_SEC +
 			(after.tv_usec - before.tv_usec);
-
 #ifdef CONFIG_RFKILL
 	/* BT-UART RTS Control (RTS Low) */
 	bt_uart_rts_ctrl(0);
@@ -413,14 +413,10 @@ static int s5p_enter_didle_state(struct cpuidle_device *dev,
 static int s5p_enter_idle_bm(struct cpuidle_device *dev,
 				struct cpuidle_state *state)
 {
-#ifdef CONFIG_CPU_DIDLE
 	if (s5p_idle_bm_check())
 		return s5p_enter_idle_state(dev, state);
 	else
 		return s5p_enter_didle_state(dev, state);
-#else
-	return s5p_enter_idle_state(dev, state);
-#endif
 }
 
 static DEFINE_PER_CPU(struct cpuidle_device, s5p_cpuidle_device);

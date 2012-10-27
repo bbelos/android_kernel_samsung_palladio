@@ -23,9 +23,11 @@
 #include <linux/proc_fs.h>
 #endif
 #include "power.h"
+
 #ifdef CONFIG_SVNET_WHITELIST
+#include <linux/delay.h>
 #include "portlist.h"
-#endif
+#endif /* CONFIG_SVNET_WHITELIST */
 
 enum {
 	DEBUG_EXIT_SUSPEND = 1U << 0,
@@ -276,26 +278,25 @@ static void suspend(struct work_struct *work)
 	}
 
 #ifdef CONFIG_SVNET_WHITELIST
-	ret = process_white_list();
+	// call process white list
+	ret = process_whilte_list();
 	if (unlikely(ret !=0)) {
-		pr_info("suspend: fail to send whitelist\n");
+		printk("fail to send whitelist\n");
 		return;
 	} else {
+		/* if there's no response for white list , we do not need guiding time to process return packet */
+		//msleep(1000); // watch suspend condition change
 		if (has_wake_lock(WAKE_LOCK_SUSPEND)) {
 			if (debug_mask & DEBUG_SUSPEND)
-				pr_info("suspend: abort suspend after white list\n");
+				pr_info("suspend: abort suspend after processing white list\n");
 			return;
 		}
-	}
-#endif
+	} 
+#endif /* CONFIG_SVNET_WHITELIST */
+
 
 	entry_event_num = current_event_num;
 	sys_sync();
-
-	//XXXTDM
-	pr_info("suspend: disabled due to bug\n");
-	return;
-
 	if (debug_mask & DEBUG_SUSPEND)
 		pr_info("suspend: enter suspend\n");
 	ret = pm_suspend(requested_suspend_state);
@@ -573,9 +574,9 @@ static int __init wakelocks_init(void)
 			"deleted_wake_locks");
 #endif
 	wake_lock_init(&main_wake_lock, WAKE_LOCK_SUSPEND, "main");
+	wake_lock_init(&sync_wake_lock, WAKE_LOCK_SUSPEND, "sync_system");
 	wake_lock(&main_wake_lock);
 	wake_lock_init(&unknown_wakeup, WAKE_LOCK_SUSPEND, "unknown_wakeups");
-	wake_lock_init(&sync_wake_lock, WAKE_LOCK_SUSPEND, "sync_system");
 
 	ret = platform_device_register(&power_device);
 	if (ret) {
@@ -598,7 +599,7 @@ static int __init wakelocks_init(void)
 	if (sync_work_queue == NULL) {
 		pr_err("%s: failed to create sync_work_queue\n", __func__);
 		ret = -ENOMEM;
-		goto err_sync_work_queue;
+		goto err_suspend_work_queue;
 	}
 
 #ifdef CONFIG_WAKELOCK_STAT
@@ -607,14 +608,11 @@ static int __init wakelocks_init(void)
 
 	return 0;
 
-err_sync_work_queue:
-	destroy_workqueue(suspend_work_queue);
 err_suspend_work_queue:
 	platform_driver_unregister(&power_driver);
 err_platform_driver_register:
 	platform_device_unregister(&power_device);
 err_platform_device_register:
-	wake_lock_destroy(&sync_wake_lock);
 	wake_lock_destroy(&unknown_wakeup);
 	wake_lock_destroy(&main_wake_lock);
 #ifdef CONFIG_WAKELOCK_STAT
@@ -628,12 +626,12 @@ static void  __exit wakelocks_exit(void)
 #ifdef CONFIG_WAKELOCK_STAT
 	remove_proc_entry("wakelocks", NULL);
 #endif
-	destroy_workqueue(sync_work_queue);
 	destroy_workqueue(suspend_work_queue);
+	destroy_workqueue(sync_work_queue);
 	platform_driver_unregister(&power_driver);
 	platform_device_unregister(&power_device);
-	wake_lock_destroy(&sync_wake_lock);
 	wake_lock_destroy(&unknown_wakeup);
+	wake_lock_destroy(&sync_wake_lock);
 	wake_lock_destroy(&main_wake_lock);
 #ifdef CONFIG_WAKELOCK_STAT
 	wake_lock_destroy(&deleted_wake_locks);
