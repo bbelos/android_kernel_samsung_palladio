@@ -36,7 +36,7 @@ mount -t yaffs2 /dev/block/mtdblock6 /cache
 
 if test -e /cache/.startrecovery || grep -q bootmode=2 /proc/cmdline ; then
 	# recovery boot
-        busybox rm -fr /cache/.startrecovery
+        rm -fr /cache/.startrecovery
 	load_offset=$recovery_offset
 	load_len=$recovery_len
 
