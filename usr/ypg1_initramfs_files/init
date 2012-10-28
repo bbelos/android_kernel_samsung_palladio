@@ -32,16 +32,22 @@ fi
 umount /efs
 rm -rf /efs
 
-if grep -q bootmode=2 /proc/cmdline ; then
+mount -t yaffs2 /dev/block/mtdblock6 /cache
+
+if test -e /cache/.startrecovery || grep -q bootmode=2 /proc/cmdline ; then
 	# recovery boot
+        busybox rm -fr /cache/.startrecovery
 	load_offset=$recovery_offset
 	load_len=$recovery_len
 
 	# disable lpm
 	echo 0 > /sys/class/power_supply/battery/charging_mode_booting
 fi
-# XXX: until /cache is removed from initramfs.list
-rm -rf /cache
+       # emergency boot
+        umount /cache
+        erase_image cache
+        mount -t yaffs2 /dev/block/mtdblock6 /cache
+        mkdir /cache/recovery
 
 dd bs=512 if=/stage1/boot.bin skip=$load_offset count=$load_len | zcat | cpio -i
 
@@ -52,6 +58,7 @@ fi
 
 umount /sys
 umount /proc
+umount /cache
 date >> /boot.txt
 
 mount -t vfat /dev/block/mmcblk0p1 /sdcard
