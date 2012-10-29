@@ -9,4 +9,6 @@ echo "Cleaning..."
 
 make $TOOLCHAIN- mrproper
 
+rm zImage
+
 echo "Cleaning Finished!!"
