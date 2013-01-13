@@ -1,74 +1,74 @@
-#!/stage1/sh
+#!/stage1/busybox sh
 export _PATH="$PATH"
-export PATH="/stage1"
+export PATH=/stage1
 
-set -x
+busybox cd /
+busybox date >>boot.txt
+exec >>boot.txt 2>&1
+busybox rm init
+busybox mount -t proc proc /proc
+busybox mount -t sysfs sysfs /sys
 
-date >>/boot.txt
-exec >>/boot.txt 2>&1
-cd /
-mount -t proc proc /proc
-mount -t sysfs sysfs /sys
+bml_over_mtd dump boot 72 reservoir 2004 /stage1/boot.bin
 
-rm /init
-
-#dd bs=512 if=/dev/block/mtdblock2 of=/stage1/boot.bin
-bml_over_mtd dump kernel 72 reservoir 2004 /stage1/boot.bin
-
-eval $(grep -m 1 -A 1 BOOT_IMAGE_OFFSETS /stage1/boot.bin | tail -n 1)
+eval $(busybox grep -m 1 -A 1 BOOT_IMAGE_OFFSETS /stage1/boot.bin | busybox tail -n 1)
 
 load_offset=$boot_offset
 load_len=$boot_len
 
-# The buyer code is needed for the touch screen driver, so go ahead and
-# copy all of the efs data now.
-mount -t yaffs2 /dev/block/mtdblock0 /efs
-if test -e /efs/buyer_code.dat ; then
-	cat /efs/buyer_code.dat > /sys/firmware/efs/buyer_code
-fi
-if test -e /efs/imei/bt.txt ; then
-	cat /efs/imei/bt.txt > /sys/firmware/efs/bt_addr
-fi
-umount /efs
-rm -rf /efs
+busybox mount -t yaffs2 /dev/block/mtdblock2 /system
+busybox mount -t yaffs2 /dev/block/mtdblock3 /cache
 
-mount -t yaffs2 /dev/block/mtdblock6 /cache
-
-if test -e /cache/.startrecovery || grep -q bootmode=2 /proc/cmdline ; then
+if busybox test -e /cache/.startrecovery || busybox grep -q bootmode=2 /proc/cmdline ; then
 	# recovery boot
-        rm -fr /cache/.startrecovery
+	busybox rm -fr /cache/.startrecovery
 	load_offset=$recovery_offset
 	load_len=$recovery_len
 
 	# disable lpm
-	echo 0 > /sys/class/power_supply/battery/charging_mode_booting
-fi
-       # emergency boot
-        umount /cache
+	busybox echo 0 > /sys/class/power_supply/battery/charging_mode_booting
+elif ! busybox test -e /system/build.prop ; then
+	# emergency boot
+        busybox umount /cache
         erase_image cache
-        mount -t yaffs2 /dev/block/mtdblock6 /cache
-        mkdir /cache/recovery
+        busybox mount -t yaffs2 /dev/block/mtdblock3 /cache
+        busybox mkdir /cache/recovery
 
-dd bs=512 if=/stage1/boot.bin skip=$load_offset count=$load_len | zcat | cpio -i
+	busybox mount -t vfat /dev/block/mmcblk0p1 /sdcard	
 
-if grep -q 1 /sys/class/power_supply/battery/charging_mode_booting ; then
-	# low power mode
-	cp lpm.rc init.rc
+	UPDATE=$(busybox cat /sdcard/cyanogenmod.cfg)
+
+	if busybox test -e $UPDATE ; then
+		busybox echo "install_zip(\"`echo $UPDATE`\");" > /cache/recovery/extendedcommand
+  	fi
+
+	load_offset=$recovery_offset
+	load_len=$recovery_len
+
+	# disable lpm
+	busybox echo 0 > /sys/class/power_supply/battery/charging_mode_booting
 fi
 
-umount /sys
-umount /proc
-umount /cache
-date >> /boot.txt
+busybox umount /cache
+busybox umount /system
+busybox umount /sdcard
 
-mount -t vfat /dev/block/mmcblk0p1 /sdcard
-cp /boot.txt /sdcard/boot.txt
-umount /sdcard
-rm -rf /sdcard
+busybox dd bs=512 if=/stage1/boot.bin skip=$load_offset count=$load_len | busybox zcat | busybox cpio -i
 
-rm -rf /dev/*
-rm -rf /stage1 
+if busybox grep -q 1 /sys/class/power_supply/battery/charging_mode_booting ; then
+	# low power mode
+	busybox cp lpm.rc init.rc
+	busybox rm init.smdkc110.rc
+fi
 
+busybox umount /sys
+busybox umount /proc
+busybox date >>boot.txt
+busybox mount -t vfat /dev/block/mmcblk0p1 /sdcard
+busybox cp /boot.txt /sdcard/boot.txt
+busybox umount /sdcard
+busybox rmdir /sdcard
+
+busybox rm -fr /stage1 /dev/*
 export PATH="${_PATH}"
-
 exec /init
