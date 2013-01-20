@@ -1008,11 +1008,6 @@ static int s3c_onenand_probe(struct platform_device *pdev)
 		add_mtd_partitions(mtd, pdata->parts, pdata->nr_parts);
 	else
 #endif
-#ifdef CONFIG_MTD_ONENAND_SAMSUNG_PIT
-	if (num_partitions <= 0) {
-		s3c_read_pit(mtd);
-	}
-#endif
 
 	if (num_partitions <= 0) {
 		/* default partition table */

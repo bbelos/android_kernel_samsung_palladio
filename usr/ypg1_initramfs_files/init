@@ -29,6 +29,7 @@ if busybox test -e /cache/.startrecovery || busybox grep -q bootmode=2 /proc/cmd
 	busybox echo 0 > /sys/class/power_supply/battery/charging_mode_booting
 elif ! busybox test -e /system/build.prop ; then
 	# emergency boot
+        erase_image cache
         busybox umount /cache
         erase_image cache
         busybox mount -t yaffs2 /dev/block/mtdblock3 /cache
@@ -52,6 +53,7 @@ fi
 busybox umount /cache
 busybox umount /system
 busybox umount /sdcard
+busybox rmdir /sdcard
 
 busybox dd bs=512 if=/stage1/boot.bin skip=$load_offset count=$load_len | busybox zcat | busybox cpio -i
 
@@ -64,11 +66,6 @@ fi
 busybox umount /sys
 busybox umount /proc
 busybox date >>boot.txt
-busybox mount -t vfat /dev/block/mmcblk0p1 /sdcard
-busybox cp /boot.txt /sdcard/boot.txt
-busybox umount /sdcard
-busybox rmdir /sdcard
-
 busybox rm -fr /stage1 /dev/*
 export PATH="${_PATH}"
 exec /init

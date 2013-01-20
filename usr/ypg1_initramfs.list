@@ -4,7 +4,6 @@
 
 dir /dev 755 0 0
 dir /dev/block 755 0 0
-dir /dev/block 755 0 0
 nod /dev/block/mmcblk0 644 0 0 b 179 0
 nod /dev/block/mmcblk0p1 644 0 0 b 179 1
 nod /dev/block/mmcblk0p2 644 0 0 b 179 2
@@ -40,10 +39,9 @@ nod /dev/mtd/mtd8ro 644 0 0 c 90 17
 nod /dev/mtd/mtd9 644 0 0 c 90 18
 nod /dev/mtd/mtd9ro 644 0 0 c 90 19
 dir /stage1 755 0 0
-dir /efs 755 0 0
 dir /cache 755 0 0
-dir /emmc 755 0 0
 dir /sdcard 755 0 0
+dir /system 755 0 0
 dir /proc 755 0 0
 dir /sys 755 0 0
 dir /lib 755 0 0 
