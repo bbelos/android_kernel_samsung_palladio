@@ -30,6 +30,7 @@
 #include <linux/input.h>
 #include <linux/irq.h>
 #include <linux/skbuff.h>
+#include <linux/console.h>
 
 #include <asm/mach/arch.h>
 #include <asm/mach/map.h>
@@ -152,24 +153,14 @@ static int aries_notifier_call(struct notifier_block *this,
 	int mode = REBOOT_MODE_NONE;
 
 	if ((code == SYS_RESTART) && _cmd) {
-		if (!strcmp((char *)_cmd, "arm11_fota"))
-			mode = REBOOT_MODE_ARM11_FOTA;
-		else if (!strcmp((char *)_cmd, "arm9_fota"))
-			mode = REBOOT_MODE_ARM9_FOTA;
-		else if (!strcmp((char *)_cmd, "recovery"))
-			mode = 2; // It's not REBOOT_MODE_RECOVERY, blame Samsung
+		if (!strcmp((char *)_cmd, "recovery"))
+			mode = REBOOT_MODE_RECOVERY;
 		else if (!strcmp((char *)_cmd, "bootloader"))
 			mode = REBOOT_MODE_FAST_BOOT;
-		else if (!strcmp((char *)_cmd, "download"))
-			mode = REBOOT_MODE_DOWNLOAD;
 		else
 			mode = REBOOT_MODE_NONE;
 	}
-	if (code != SYS_POWER_OFF) {
-		if (sec_set_param_value) {
-			sec_set_param_value(__REBOOT_MODE, &mode);
-		}
-	}
+	__raw_writel(mode, S5P_INFORM6);
 
 	return NOTIFY_DONE;
 }
@@ -1416,12 +1407,8 @@ static void touch_keypad_onoff(int onoff)
 static const int touch_keypad_code[] = {
 	KEY_MENU,
 	KEY_BACK,
-	KEY_LEFT,
-	KEY_RIGHT,
-	KEY_UP,
-	KEY_DOWN,
-	KEY_CAMERA,
-	KEY_SEND,	
+	KEY_HOME,
+        KEY_SEARCH	
 };
 
 static struct touchkey_platform_data touchkey_data = {
@@ -2633,11 +2620,7 @@ static void aries_power_off(void)
 		    charger_callbacks->get_vdcin(charger_callbacks)) {
 			/* watchdog reset */
 			pr_info("%s: charger connected, rebooting\n", __func__);
-			mode = REBOOT_MODE_CHARGING;
-			if (sec_set_param_value)
-				sec_set_param_value(__REBOOT_MODE, &mode);
-			kernel_sec_clear_upload_magic_number();
-			kernel_sec_hw_reset(1);
+			writel(3, S5P_INFORM6);
 			arch_reset('r', NULL);
 			pr_crit("%s: waiting for reset!\n", __func__);
 			while (1);
@@ -3229,9 +3212,53 @@ static void __init onenand_init()
 	clk_enable(clk);
 }
 
+static bool console_flushed;
+
+static void flush_console(void)
+{
+	if (console_flushed)
+		return;
+
+	console_flushed = true;
+
+	printk("\n");
+	pr_emerg("Restarting %s\n", linux_banner);
+	if (!try_acquire_console_sem()) {
+		release_console_sem();
+		return;
+	}
+
+	mdelay(50);
+
+	local_irq_disable();
+	if (try_acquire_console_sem())
+		pr_emerg("flush_console: console was locked! busting!\n");
+	else
+		pr_emerg("flush_console: console was locked!\n");
+	release_console_sem();
+}
+
+static void aries_pm_restart(char mode, const char *cmd)
+{
+	flush_console();
+
+	/* On a normal reboot, INFORM6 will contain a small integer
+	 * reason code from the notifier hook.  On a panic, it will
+	 * contain the 0xee we set at boot.  Write 0xbb to differentiate
+	 * a watchdog-timeout-and-reboot (0xee) from a controlled reboot
+	 * (0xbb)
+	 */
+	if (__raw_readl(S5P_INFORM6) == 0xee)
+		__raw_writel(0xbb, S5P_INFORM6);
+
+	arm_machine_restart(mode, cmd);
+}
+
+
 // Ugly hack to inject parameters (e.g. device serial, bootmode) into /proc/cmdline
 static void __init aries_inject_cmdline(void) {
 	char *new_command_line;
+        int bootmode = __raw_readl(S5P_INFORM6);
 	int size;
 
 	size = strlen(boot_command_line);
@@ -3239,7 +3266,13 @@ static void __init aries_inject_cmdline(void) {
 	strcpy(new_command_line, saved_command_line);
 	size += sprintf(new_command_line + size, " androidboot.serialno=%08X%08X",
 				system_serial_high, system_serial_low);
-	size += sprintf(new_command_line + size, " bootmode=%d", __raw_readl(S5P_INFORM6));
+	
+	// Only write bootmode when less than 10 to prevent confusion with watchdog
+	// reboot (0xee = 238)
+	if (bootmode < 10) {
+		size += sprintf(new_command_line + size, " bootmode=%d", bootmode);
+	}
+
 	saved_command_line = new_command_line;
 }
 
@@ -3425,6 +3458,12 @@ static void __init aries_machine_init(void)
 	gps_gpio_init();
 #endif
 	aries_init_wifi_mem();
+
+/* write something into the INFORM6 register that we can use to
+	 * differentiate an unclear reboot from a clean reboot (which
+	 * writes a small integer code to INFORM6).
+	 */
+	__raw_writel(0xee, S5P_INFORM6);
 
 	onenand_init();
 
