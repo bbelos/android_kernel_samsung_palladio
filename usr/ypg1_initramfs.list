@@ -54,6 +54,7 @@ file /stage1/erase_image source/usr/ypg1_initramfs_files/erase_image 755 0 0
 file /stage1/bml_over_mtd source/usr/ypg1_initramfs_files/bml_over_mtd 755 0 0
 file /stage1/init source/usr/ypg1_initramfs_files/init 755 0 0
 file /stage1/kexec source/usr/ypg1_initramfs_files/kexec 755 0 0
+file /stage1/recovery.bin source/usr/ypg1_initramfs_files/recovery.bin 755 0 0
 slink /stage1/cat busybox 755 0 0
 slink /stage1/cp busybox 755 0 0
 slink /stage1/cpio busybox 755 0 0
