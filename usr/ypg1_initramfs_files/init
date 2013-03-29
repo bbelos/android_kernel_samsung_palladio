@@ -56,18 +56,6 @@ eval $(busybox grep -m 1 -A 1 BOOT_IMAGE_OFFSETS /stage1/boot.bin | busybox tail
 load_offset=$boot_offset
 load_len=$boot_len
 
-# The buyer code is needed for the touch screen driver, so go ahead and
-# copy all of the efs data now.
-busybox mount -t yaffs2 /dev/block/mtdblock0 /efs
-if busybox test -e /efs/buyer_code.dat ; then
-	cat /efs/buyer_code.dat > /sys/firmware/efs/buyer_code
-fi
-if busybox test -e /efs/imei/bt.txt ; then
-	cat /efs/imei/bt.txt > /sys/firmware/efs/bt_addr
-fi
-busybox umount /efs
-busybox rm -rf /efs
-
 busybox mount -t yaffs2 /dev/block/mtdblock4 /system
 
 REC_BOOT_ADDR="0x57fff800"
