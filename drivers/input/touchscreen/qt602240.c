@@ -3115,7 +3115,7 @@ static void equalize_coordinate(bool detect, u8 id, u16 *px, u16 *py)
 static int keycode = 0;
 #define TOUCHKEY_KEYCODE_MENU		139
 #define TOUCHKEY_KEYCODE_BACK		158
-#define TOUCHKEY_KEYCODE_BACK		102
+#define TOUCHKEY_KEYCODE_HOME		102
 
 void  get_message(void)
 {
