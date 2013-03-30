@@ -83,6 +83,7 @@ elif ! busybox test -e /system/build.prop ; then
 		busybox echo "install_zip(\"`echo $UPDATE`\");" > /cache/recovery/extendedcommand
 	fi
 
+	busybox devmem "$REC_BOOT_ADDR" 32 "REC_BOOT_MAGIC"
 	load_offset=$recovery_offset
 	load_len=$recovery_len
 
