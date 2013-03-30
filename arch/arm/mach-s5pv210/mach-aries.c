@@ -1463,8 +1463,12 @@ static void touch_keypad_onoff(int onoff)
 static const int touch_keypad_code[] = {
 	KEY_MENU,
 	KEY_BACK,
-	KEY_HOME,
-        KEY_SEARCH
+	KEY_LEFT,
+	KEY_RIGHT,
+	KEY_UP,
+	KEY_DOWN,
+	KEY_CAMERA,
+	KEY_SEND,	
 };
 
 static struct touchkey_platform_data touchkey_data = {

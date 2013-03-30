@@ -3113,9 +3113,8 @@ static void equalize_coordinate(bool detect, u8 id, u16 *px, u16 *py)
 #endif
 
 static int keycode = 0;
-#define TOUCHKEY_KEYCODE_MENU		139
-#define TOUCHKEY_KEYCODE_BACK		158
-#define TOUCHKEY_KEYCODE_BACK		102
+#define TOUCHKEY_KEYCODE_MENU		158
+#define TOUCHKEY_KEYCODE_BACK		28
 
 void  get_message(void)
 {
@@ -3209,7 +3208,7 @@ void  get_message(void)
 						printk("%s : BACK KEY\n", __func__);
 				}
 				else if (aries_usa && quantum_msg[2] == 4) {
-					/* home key */
+					/* towe key */
 					input_report_key(qt602240->input_dev, KEY_HOME, 1);
 					input_sync(qt602240->input_dev);
 					keycode = KEY_HOME;//TOUCHKEY_KEYCODE_HOME;
