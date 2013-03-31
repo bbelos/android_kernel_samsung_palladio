@@ -223,9 +223,11 @@ static int max8998_charging_control(struct chg_data *chg)
 	if ((prev_charging == chg->charging) && (prev_cable == chg->cable_status))
 		return 0;
 
+/*
 	bat_info("%s : chg(%d) cable(%d) dis(%X) esafe(%d) bat(%d,%d,%d)\n", __func__,
 		chg->charging, chg->cable_status, chg->bat_info.dis_reason, chg->esafe,
 		chg->bat_info.batt_soc, chg->set_batt_full, chg->bat_info.batt_is_full);
+*/
 
 	if (!chg->charging) {
 		/* disable charging */
@@ -657,11 +659,13 @@ static void s3c_bat_discharge_reason(struct chg_data *chg)
 		chg->set_batt_full = true;
 	}
 
+/*
 	bat_dbg("bat(%d,%d) tmp(%d,%d) full(%d,%d) cable(%d) chg(%d) dis(%X)\n",
 		chg->bat_info.batt_soc, chg->bat_info.batt_vcell/1000,
 		chg->bat_info.batt_temp, chg->bat_info.batt_temp_adc,
 		chg->set_batt_full, chg->bat_info.batt_is_full,
 		chg->cable_status, chg->bat_info.charging_status, chg->bat_info.dis_reason);
+*/
 }
 
 static int dummy_stftd(int state) { return 0; }
