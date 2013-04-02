@@ -6426,7 +6426,7 @@ static void __init qt602240_read_buyer_code(void)
 {
 	const char *buyer_code = samsung_efs_buyer_code();
 	printk(KERN_DEBUG "qt602240: buyer_code=<%s>\n", buyer_code, buyer_code);
-	aries_usa = !strcmp(buyer_code, "XAA");
+	aries_usa = !(strcmp(buyer_code, "XAA") & strcmp(buyer_code, "XAC"));
 }
 
 int __init qt602240_init(void)
