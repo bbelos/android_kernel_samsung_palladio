@@ -1217,15 +1217,6 @@ static struct s3c64xx_spi_csinfo smdk_spi0_csi[] = {
  .fb_delay = 0x0,
  },
 };
-/*
-static struct s3c64xx_spi_csinfo smdk_spi1_csi[] = {
- [SMDK_MMCSPI_CS] = {
- .line = S5PV210_GPB(5),
- .set_level = gpio_set_value,
- .fb_delay = 0x0,
- },
-};
-*/ 
 
 static struct spi_board_info s3c_spi_devs[] __initdata = {
  [0] = {
@@ -1238,18 +1229,6 @@ static struct spi_board_info s3c_spi_devs[] __initdata = {
  .chip_select     = 0,
  .controller_data = &smdk_spi0_csi[SMDK_MMCSPI_CS],
  },
- #if 0
- [1] = {
- .modalias        = "spidev", /* device node name */
- .mode            = SPI_MODE_0, /* CPOL=0, CPHA=0 */
- .max_speed_hz    = 10000000,
- /* Connected to SPI-1 as 1st Slave */
- .bus_num         = 1,
- .irq             = IRQ_SPI1,
- .chip_select     = 0,
- .controller_data = &smdk_spi1_csi[SMDK_MMCSPI_CS],
- },
- #endif
 };
 #endif
 // VenturiGB_Usys_jypark 2011.08.16 - DMB ]]
