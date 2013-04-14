@@ -55,6 +55,7 @@
 #define DEBUG_MAKE_RAW					0 /* Making Dec/Enc Debugging Files */
 #define ENABLE_DEBUG_MFC_INIT				0
 #define ENABLE_MFC_REGISTER_DEBUG			0 /* 0: Disable	1: Enable */
+#define ENABLE_ENC_MB					1
 
 #define ENABLE_CHECK_START_CODE				1
 #define ENABLE_CHECK_NULL_STREAM			1
@@ -114,6 +115,7 @@ static int CheckNullStream(unsigned char *src_mem, unsigned int streamSize);
 
 static int mfc_mem_inst_no[MFC_MAX_INSTANCE_NUM];
 static bool mCheckType;
+
 
 /*
  * Debugging Functions	Definition
@@ -240,7 +242,6 @@ static void mfc_set_dec_stream_buffer(struct mfc_inst_ctx *mfc_ctx, int buf_addr
 	unsigned int port0_base_paddr;
 
 	mfc_debug_L0("inst_no : %d, buf_addr : 0x%08x, buf_size : 0x%08x\n", mfc_ctx->InstNo, buf_addr, buf_size);
-
 	if (mfc_ctx->buf_type == MFC_BUFFER_CACHE) {
 		unsigned char *in_vir;
 		in_vir = phys_to_virt(buf_addr);
@@ -707,6 +708,14 @@ static void mfc_set_encode_init_param(struct mfc_inst_ctx *mfc_ctx, union mfc_ar
 		WRITEL(((enc_init_h264_arg->in_deblock_beta * 2) & 0x1f), MFC_LF_BETA_OFF);
 		WRITEL(1, MFC_EDFU_SF_EPB_ON_CTRL); /* Auto EPB insertion on, only for h264 */
 
+		/* if in_RC_mb_enable is '1' */
+#if ENABLE_ENC_MB
+		if (enc_init_h264_arg->in_RC_frm_enable != 1)
+			enc_init_h264_arg->in_RC_frm_enable = 1;
+		if (enc_init_h264_arg->in_RC_mb_enable != 1)
+			enc_init_h264_arg->in_RC_mb_enable = 1;
+#endif
+
 		WRITEL((enc_init_h264_arg->in_RC_frm_enable << 9) |
 			(enc_init_h264_arg->in_RC_mb_enable << 8) |
 			(enc_init_h264_arg->in_frame_qp & 0x3f),
@@ -1145,7 +1154,6 @@ static enum mfc_error_code mfc_encode_header(struct mfc_inst_ctx *mfc_ctx, union
 		dma_unmap_single(NULL, init_arg->out_p_addr.strm_ref_y,
 				init_arg->out_header_size, DMA_FROM_DEVICE);
 	}
-		
 	mfc_debug("encoded header size (%d)\n", init_arg->out_header_size);
 
 	return MFCINST_RET_OK;
@@ -1199,7 +1207,7 @@ static enum mfc_error_code mfc_encode_one_frame(struct mfc_inst_ctx *mfc_ctx, un
 		WRITEL((0x1 << 1), MFC_SI_CH0_ENC_PARA);
 	else if (mfc_ctx->forceSetFrameType == I_FRAME)
 		WRITEL(0x1, MFC_SI_CH0_ENC_PARA);
-	
+
 	mfc_ctx->forceSetFrameType = DONT_CARE;
 
 	if (mfc_ctx->buf_type == MFC_BUFFER_CACHE) {
@@ -1358,7 +1366,7 @@ enum mfc_error_code mfc_init_decode(struct mfc_inst_ctx *mfc_ctx, union mfc_args
 			(mfc_ctx->displayDelay << 16)) : 0)),
 			MFC_SI_CH0_DPB_CONFIG_CTRL);
 
-        /* Set Available Type */
+	/* Set Available Type */
 	if (mCheckType == false) {
 		nSize = mfc_ctx->img_width * mfc_ctx->img_height;
 		mfc_ctx->shared_mem.p720_limit_enable = 49425;
@@ -1628,7 +1636,6 @@ static enum mfc_error_code mfc_decode_one_frame(struct mfc_inst_ctx *mfc_ctx, st
 
 	dec_arg->out_res_change = (READL(MFC_SI_DISPLAY_STATUS) >> 4) & 0x3;
 
-	
 	if (((READL(MFC_SI_DISPLAY_STATUS) & 0x3) != DECODING_DISPLAY) &&
 		((READL(MFC_SI_DISPLAY_STATUS) & 0x3) != DISPLAY_ONLY)) {
 		dec_arg->out_display_Y_addr = 0;
@@ -1650,7 +1657,7 @@ static enum mfc_error_code mfc_decode_one_frame(struct mfc_inst_ctx *mfc_ctx, st
 	else
 		dec_arg->out_display_status = 3;
 
-        frame_type = READL(MFC_SI_FRAME_TYPE);
+	frame_type = READL(MFC_SI_FRAME_TYPE);
 	mfc_ctx->FrameType = (enum mfc_frame_type)(frame_type & 0x3);
 
 	mfc_debug_L0("(Y_ADDR : 0x%08x  C_ADDR : 0x%08x)\r\n",
@@ -1750,7 +1757,7 @@ enum mfc_error_code mfc_exe_decode(struct mfc_inst_ctx *mfc_ctx, union mfc_args 
 				aligned_width*aligned_height, DMA_FROM_DEVICE);
 		}
 	}
-		
+
 	mfc_debug_L0("--\n");
 
 	return ret_code;
@@ -1910,7 +1917,7 @@ enum mfc_error_code mfc_set_config(struct mfc_inst_ctx *mfc_ctx, union mfc_args 
 			mfc_ctx->shared_mem.ext_enc_control = (mfc_ctx->shared_mem.ext_enc_control | (0x1 << 1));
 		break;
 
-          /* XXX: need to implement */
+		/* XXX: need to implement */
 	case MFC_ENC_SETCONF_CHANGE_FRAME_RATE:
 		if (mfc_ctx->MfcState != MFCINST_STATE_ENC_EXE) {
 			mfc_err("MFC_ENC_SETCONF_FRAME_TYPE : state is invalid\n");
@@ -1918,7 +1925,7 @@ enum mfc_error_code mfc_set_config(struct mfc_inst_ctx *mfc_ctx, union mfc_args 
 		}
 		break;
 
-          /* XXX: need to implement */
+		/* XXX: need to implement */
 	case MFC_ENC_SETCONF_CHANGE_BIT_RATE:
 		if (mfc_ctx->MfcState != MFCINST_STATE_ENC_EXE) {
 			mfc_err("MFC_ENC_SETCONF_FRAME_TYPE : state is invalid\n");

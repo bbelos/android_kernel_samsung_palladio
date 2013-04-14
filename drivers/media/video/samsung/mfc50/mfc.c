@@ -191,7 +191,7 @@ static int mfc_release(struct inode *inode, struct file *file)
 		ret = regulator_disable(mfc_pd_regulator);
 		if (ret < 0) {
 			mfc_err("MFC_RET_POWER_DISABLE_FAIL\n");
-                        goto out_release;
+			goto out_release;
 		}
 	}
 
@@ -366,7 +366,7 @@ static long mfc_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 		else
 			in_param.ret_code = mfc_allocate_buffer(mfc_ctx, &in_param.args, 1);
 
-                      mfc_ctx->desc_buff_paddr = in_param.args.mem_alloc.out_paddr + CPB_BUF_SIZE;
+		mfc_ctx->desc_buff_paddr = in_param.args.mem_alloc.out_paddr + CPB_BUF_SIZE;
 
 		ret = in_param.ret_code;
 		mutex_unlock(&mfc_mutex);
@@ -419,14 +419,15 @@ static long mfc_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 
 		break;
 
-       case IOCTL_MFC_BUF_CACHE:
+	case IOCTL_MFC_BUF_CACHE:
 		mutex_lock(&mfc_mutex);
-		
+
+		in_param.ret_code = MFCINST_RET_OK;
 		mfc_ctx->buf_type = in_param.args.buf_type;
 
 		mutex_unlock(&mfc_mutex);
 		break;
-		
+
 	default:
 		mfc_err("Requested ioctl command is not defined. (ioctl cmd=0x%08x)\n", cmd);
 		in_param.ret_code  = MFCINST_ERR_INVALID_PARAM;
@@ -498,7 +499,7 @@ static int mfc_mmap(struct file *filp, struct vm_area_struct *vma)
 		page_frame_no, vir_size - mfc_ctx->port0_mmap_size, vma->vm_page_prot)) {
 		mfc_err("mfc remap port1 error\n");
 		return -EAGAIN;
-	}	
+	}
 
 	mfc_debug("virtual requested mem = %ld, physical reserved data mem = %ld\n", vir_size, phy_size);
 
@@ -537,7 +538,7 @@ static int mfc_probe(struct platform_device *pdev)
 	struct resource *res;
 	size_t size;
 	int ret;
-        unsigned int mfc_port1_alloc_paddr;
+	unsigned int mfc_port1_alloc_paddr;
 
 	if (!pdev || !pdev->dev.platform_data) {
 		dev_err(&pdev->dev, "Unable to probe mfc!\n");
@@ -609,7 +610,7 @@ static int mfc_probe(struct platform_device *pdev)
 	mfc_port1_alloc_paddr = (unsigned int)pdata->buf_phy_base[1];
 	mfc_port1_memsize =  (unsigned int)pdata->buf_phy_size[1];
 
-        mfc_port1_base_paddr = (unsigned int)s5p_get_media_membase_bank(1);
+	mfc_port1_base_paddr = (unsigned int)s5p_get_media_membase_bank(1);
 	mfc_port1_base_paddr = ALIGN_TO_128KB(mfc_port1_base_paddr);
 
 	mfc_debug(" mfc_port1_base_paddr= 0x%x \n", mfc_port1_base_paddr);
@@ -624,13 +625,13 @@ static int mfc_probe(struct platform_device *pdev)
 		goto err_vaddr_map;
 	}
 
-        mfc_set_port1_buff_paddr(mfc_port1_alloc_paddr);
+	mfc_set_port1_buff_paddr(mfc_port1_alloc_paddr);
 
 	mfc_debug("mfc_port0_base_paddr = 0x%08x, mfc_port1_base_paddr = 0x%08x <<\n",
 		(unsigned int)mfc_port0_base_paddr, (unsigned int)mfc_port1_base_paddr);
 	mfc_debug("mfc_port0_base_vaddr = 0x%08x, mfc_port1_base_vaddr = 0x%08x <<\n",
 		(unsigned int)mfc_port0_base_vaddr, (unsigned int)mfc_port1_base_vaddr);
-        mfc_debug("mfc_port1_alloc_paddr = 0x%08x <<\n", (unsigned int)mfc_port1_alloc_paddr);
+	mfc_debug("mfc_port1_alloc_paddr = 0x%08x <<\n", (unsigned int)mfc_port1_alloc_paddr);
 
 	/* Get mfc power domain regulator */
 	mfc_pd_regulator = regulator_get(&pdev->dev, "pd");
