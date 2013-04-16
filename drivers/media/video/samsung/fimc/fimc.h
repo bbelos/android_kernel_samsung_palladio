@@ -65,10 +65,7 @@
 #define FIMC_SCLK		1
 #define FIMC_OVLY_MODE FIMC_OVLY_DMA_AUTO
 
-#define PINGPONG_2ADDR_MODE
-#if defined(PINGPONG_2ADDR_MODE)
 #define FIMC_PINGPONG 2
-#endif
 
 /*
  * ENUMERATIONS
@@ -255,7 +252,6 @@ struct fimc_outinfo {
 	int			last_ctx;
 	spinlock_t		lock_in;
 	spinlock_t		lock_out;
-	struct mutex            lock_fimc_out;
 	struct fimc_idx		inq[FIMC_INQUEUES];
 	struct fimc_ctx		ctx[FIMC_MAX_CTXS];
 	struct fimc_ctx_idx	idxs;
@@ -375,7 +371,7 @@ struct fimc_control {
 	atomic_t			in_use;
 	void __iomem			*regs;		/* register i/o */
 	struct clk			*clk;		/* interface clock */
-	struct regulator	*regulator;		/* pd regulator */
+	struct regulator		*regulator;		/* pd regulator */
 	struct fimc_meminfo		mem;		/* for reserved mem */
 
 	/* kernel helpers */
@@ -386,6 +382,9 @@ struct fimc_control {
 	struct device			*dev;
 	int				irq;
 
+	/* P1 */
+	int				vt_mode;
+	
 	/* v4l2 related */
 	struct video_device		*vd;
 	struct v4l2_device		v4l2_dev;

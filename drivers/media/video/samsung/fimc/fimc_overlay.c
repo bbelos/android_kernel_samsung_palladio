@@ -154,7 +154,7 @@ int fimc_s_fmt_vid_overlay(struct file *filp, void *fh, struct v4l2_format *f)
 			return ret;
 
 		ctx->win = f->fmt.win;
-		//fimc_change_fifo_position(ctrl, ctx);
+		/*fimc_change_fifo_position(ctrl, ctx);*/
 
 		break;
 	case FIMC_STREAMOFF:

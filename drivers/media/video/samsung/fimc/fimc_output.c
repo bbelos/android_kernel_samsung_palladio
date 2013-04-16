@@ -127,10 +127,13 @@ int fimc_outdev_resume_dma(struct fimc_control *ctrl, struct fimc_ctx *ctx)
 	struct s3cfb_window *win;
 	struct v4l2_rect fimd_rect;
 	int ret = -1, idx;
+#if defined(CONFIG_VIDEO_NM6XX)
+	struct fimc_global *fimc = get_fimc_dev();
+#endif
 
 	fbinfo = registered_fb[ctx->overlay.fb_id];
 	win = (struct s3cfb_window *)fbinfo->par;
-	fimc_fimd_rect(ctrl, ctx, &fimd_rect);
+		fimc_fimd_rect(ctrl, ctx, &fimd_rect);
 
 	memcpy(&var, &fbinfo->var, sizeof(struct fb_var_screeninfo));
 
@@ -140,8 +143,18 @@ int fimc_outdev_resume_dma(struct fimc_control *ctrl, struct fimc_ctx *ctx)
 	win->other_mem_addr = ctx->dst[1].base[FIMC_ADDR_Y];
 	win->other_mem_size = ctx->dst[1].length[FIMC_ADDR_Y];
 
-	var.xres = fimd_rect.width;
-	var.yres = fimd_rect.height;
+#if defined(CONFIG_VIDEO_NM6XX)
+	if (fimc->active_camera == CAMERA_ID_MOBILETV)
+	{
+		var.xres = 1024;
+		var.yres = 600;
+	}
+	else
+#endif
+	{
+		var.xres = fimd_rect.width;
+		var.yres = fimd_rect.height;
+	}
 
 	win->x = fimd_rect.left;
 	win->y = fimd_rect.top;
@@ -722,6 +735,9 @@ static void fimc_outdev_set_dst_dma_offset(struct fimc_control *ctrl,
 	struct v4l2_rect bound, win;
 	struct v4l2_rect *w = &ctx->win.w;
 	u32 pixfmt = ctx->fbuf.fmt.pixelformat;
+#if defined(CONFIG_VIDEO_NM6XX)
+	struct fimc_global *fimc = get_fimc_dev();
+#endif
 
 	memset(&bound, 0, sizeof(bound));
 	memset(&win, 0, sizeof(win));
@@ -774,8 +790,13 @@ static void fimc_outdev_set_dst_dma_offset(struct fimc_control *ctrl,
 
 	switch (ctx->overlay.mode) {
 	case FIMC_OVLY_DMA_AUTO:
-		win.left = 0;
-		win.top = 0;
+#if defined(CONFIG_VIDEO_NM6XX)
+		if(fimc->active_camera != CAMERA_ID_MOBILETV)
+#endif
+		{
+			win.left = 0;
+			win.top = 0;
+		}
 		fimc_hwset_output_offset(ctrl, pixfmt, &bound, &win);
 		break;
 
@@ -1948,6 +1969,9 @@ static int fimc_qbuf_output_dma_auto(struct fimc_control *ctrl,
 	struct fimc_buf_set buf_set;	/* destination addr */
 	struct v4l2_rect fimd_rect;
 	int ret = -1, i;
+#if defined(CONFIG_VIDEO_NM6XX)
+	struct fimc_global *fimc = get_fimc_dev();
+#endif
 
 	switch (ctx->status) {
 	case FIMC_READY_ON:
@@ -1960,11 +1984,21 @@ static int fimc_qbuf_output_dma_auto(struct fimc_control *ctrl,
 		/* set window path & owner */
 		win->path = DATA_PATH_DMA;
 		win->owner = DMA_MEM_OTHER;
-		win->other_mem_addr = ctx->dst[FIMC_OUTBUFS-1].base[FIMC_ADDR_Y];
-		win->other_mem_size = ctx->dst[FIMC_OUTBUFS-1].length[FIMC_ADDR_Y];
+		win->other_mem_addr = ctx->dst[1].base[FIMC_ADDR_Y];
+		win->other_mem_size = ctx->dst[1].length[FIMC_ADDR_Y];
 
-		var.xres = fimd_rect.width;
-		var.yres = fimd_rect.height;
+#if defined(CONFIG_VIDEO_NM6XX)
+		if(fimc->active_camera == CAMERA_ID_MOBILETV)
+		{
+			var.xres = 1024;
+			var.yres = 600;
+		}
+		else
+#endif
+		{
+			var.xres = fimd_rect.width;
+			var.yres = fimd_rect.height;
+		}
 
 		win->x = fimd_rect.left;
 		win->y = fimd_rect.top;
@@ -2107,14 +2141,12 @@ int fimc_qbuf_output(void *fh, struct v4l2_buffer *b)
 		return -EINVAL;
 	}
 
-	mutex_lock(&ctrl->out->lock_fimc_out);
 	if ((ctrl->status == FIMC_READY_ON) ||
 	    (ctrl->status == FIMC_STREAMON_IDLE)) {
 		ret = fimc_pop_inq(ctrl, &ctx_num, &idx);
 		if (ret < 0) {
 			fimc_err("Fail: fimc_pop_inq\n");
-			ret = -EINVAL;
-			goto qbuf_output_end;
+			return -EINVAL;
 		}
 
 		fimc_clk_en(ctrl, true);
@@ -2126,8 +2158,7 @@ int fimc_qbuf_output(void *fh, struct v4l2_buffer *b)
 			ret = fimc_outdev_set_ctx_param(ctrl, ctx);
 			if (ret < 0) {
 				fimc_err("Fail: fimc_outdev_set_ctx_param\n");
-				ret = -EINVAL;
-				goto qbuf_output_end;
+				return -EINVAL;
 			}
 			ctrl->out->last_ctx = ctx->ctx_num;
 		}
@@ -2150,8 +2181,6 @@ int fimc_qbuf_output(void *fh, struct v4l2_buffer *b)
 		}
 	}
 
-qbuf_output_end:
-	mutex_unlock(&ctrl->out->lock_fimc_out);
 	return ret;
 }
 
@@ -2230,7 +2259,6 @@ int fimc_g_fmt_vid_out(struct file *filp, void *fh, struct v4l2_format *f)
 
 		spin_lock_init(&ctrl->out->lock_in);
 		spin_lock_init(&ctrl->out->lock_out);
-		mutex_init(&ctrl->out->lock_fimc_out);
 
 		for (i = 0; i < FIMC_INQUEUES; i++) {
 			ctrl->out->inq[i].ctx = -1;

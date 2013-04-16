@@ -261,8 +261,6 @@ static inline u32 fimc_irq_out_dma(struct fimc_control *ctrl,
 		return wakeup;
 	}
 
-	ctx->status = FIMC_STREAMON_IDLE;
-
 	/* Attach done buffer to outgoing queue. */
 	ret = fimc_push_outq(ctrl, ctx, idx);
 	if (ret < 0)
@@ -288,14 +286,14 @@ static inline u32 fimc_irq_out_dma(struct fimc_control *ctrl,
 	/* Detach buffer from incomming queue. */
 	ret = fimc_pop_inq(ctrl, &ctx_num, &next);
 	if (ret == 0) {		/* There is a buffer in incomming queue. */
-		if (ctx_num != ctrl->out->last_ctx) {
-			ctx = &ctrl->out->ctx[ctx_num];
-			ctrl->out->last_ctx = ctx->ctx_num;
-			fimc_outdev_set_ctx_param(ctrl, ctx);
-		}
-
+		ctx = &ctrl->out->ctx[ctx_num];
 		fimc_outdev_set_src_addr(ctrl, ctx->src[next].base);
-		fimc_output_set_dst_addr(ctrl, ctx, next);
+
+		memset(&buf_set, 0x00, sizeof(buf_set));
+		buf_set.base[FIMC_ADDR_Y] = ctx->dst[next].base[FIMC_ADDR_Y];
+
+		for (i = 0; i < FIMC_PHYBUFS; i++)
+			fimc_hwset_output_address(ctrl, &buf_set, i);
 
 		ret = fimc_outdev_start_camif(ctrl);
 		if (ret < 0)
@@ -627,10 +625,14 @@ int fimc_mmap_out_dst(struct file *filp, struct vm_area_struct *vma, u32 idx)
 	vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot);
 	vma->vm_flags |= VM_RESERVED;
 
+#if defined (CONFIG_SAMSUNG_P1) || defined (CONFIG_SAMSUNG_P1C)
 	if (ctrl->out->ctx[ctx_id].dst[idx].base[0])
 		pfn = __phys_to_pfn(ctrl->out->ctx[ctx_id].dst[idx].base[0]);
 	else
 		pfn = __phys_to_pfn(ctrl->mem.curr);
+#elif defined (CONFIG_SAMSUNG_P1L) || defined (CONFIG_SAMSUNG_P1N)
+		pfn = __phys_to_pfn(ctrl->mem.base);
+#endif
 
 	ret = remap_pfn_range(vma, vma->vm_start, pfn, size, vma->vm_page_prot);
 	if (ret != 0)
@@ -721,15 +723,62 @@ static u32 fimc_poll(struct file *filp, poll_table *wait)
 	return mask;
 }
 
+#include <mach/gpio.h>
+#include <plat/gpio-cfg.h>
+#include <mach/gpio-aries.h>
+#include <linux/delay.h>
+
 static
 ssize_t fimc_read(struct file *filp, char *buf, size_t count, loff_t *pos)
 {
-	return 0;
+	int err = 0;
+
+	printk("%s, for factory test\n", __func__);
+
+
+	gpio_direction_output(S5PV210_MP04(2), 0);
+	gpio_direction_output(S5PV210_MP04(3), 0);
+
+	gpio_free(S5PV210_MP04(2));
+	gpio_free(S5PV210_MP04(3));
+
+	return err;
 }
 
 static
 ssize_t fimc_write(struct file *filp, const char *b, size_t c, loff_t *offset)
 {
+	int i = 0;
+	int err = 0;
+
+	printk("%s, for factory test\n", __func__);
+
+	err = gpio_request(S5PV210_MP04(2), "MP04");
+	if (err) 
+	{
+		printk(KERN_ERR "failed to request MP04 for camera control\n");
+		return err;
+	}
+	err = gpio_request(S5PV210_MP04(3), "MP04");
+	if (err) 
+	{
+		printk(KERN_ERR "failed to request MP04 for camera control\n");
+		return err;
+	}
+	//movie mode
+	gpio_direction_output(S5PV210_MP04(3), 0);
+	for (i = 8; i > 1; i--)
+	{
+		//gpio on
+		gpio_direction_output(S5PV210_MP04(2), 1);
+		udelay(1);
+		//gpio off
+		gpio_direction_output(S5PV210_MP04(2), 0);
+		udelay(1);
+	}
+	gpio_direction_output(S5PV210_MP04(2), 1);
+	mdelay(2);
+
 	return 0;
 }
 
