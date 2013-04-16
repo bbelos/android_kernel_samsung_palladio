@@ -869,7 +869,7 @@ static int s5ka3dfx_set_wb(struct v4l2_subdev *sd, struct v4l2_control *ctrl)
         err = S5KA3DFX_WRITE_REGS(sd, s5ka3dfx_wb_sunny, sizeof(s5ka3dfx_wb_sunny));
 		break;
 
-	case WHITE_BALANCE_CLOUDY:
+	case WHITE_BALANCE_CLOUDY_DAYLIGHT:
         err = S5KA3DFX_WRITE_REGS(sd, s5ka3dfx_wb_cloudy, sizeof(s5ka3dfx_wb_cloudy));
 		break;
 
