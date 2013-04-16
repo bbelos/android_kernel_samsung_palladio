@@ -4589,13 +4589,7 @@ static const struct v4l2_subdev_ops isx005_ops = {
 };
 
 #ifdef FACTORY_CHECK
-extern ssize_t camtype_show(struct device *dev, struct device_attribute *attr, char *buf);
-extern ssize_t camtype_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t size);
-
-static DEVICE_ATTR(camtype, 0644, camtype_show, camtype_store);
-
 extern struct class *sec_class;
-extern struct device *sec_cam_dev ;
 #endif
 
 /*
@@ -4629,24 +4623,6 @@ static int isx005_probe(struct i2c_client *client,
 
 	isx005_msg(&client->dev, "3MP camera ISX005 loaded.\n");
 
-#ifdef FACTORY_CHECK
-	{
-		if (sec_cam_dev == NULL)
-		{
-			sec_cam_dev = device_create(sec_class, NULL, 0, NULL, "sec_cam");
-			if (IS_ERR(sec_cam_dev))
-				pr_err("Failed to create device(sec_cam_dev)!\n");
-		}
-		
-		if (sec_cam_dev != NULL && camtype_init == false)
-		{
-			camtype_init = true;
-			if (device_create_file(sec_cam_dev, &dev_attr_camtype) < 0)
-				pr_err("Failed to create device file(%s)!\n", dev_attr_camtype.attr.name);
-		}
-	}
-#endif
-
 	return 0;
 }
 
@@ -4663,16 +4639,6 @@ static int isx005_remove(struct i2c_client *client)
 
 	isx005_flash(0, sd);//flash off
 
-#ifndef FACTORY_CHECK
-	if (sec_cam_dev != NULL && camtype_init == true) {
-		camtype_init = false;
-		device_remove_file(sec_cam_dev, &dev_attr_camtype);
-	}
-	
-	if (sec_cam_dev != NULL) {
-		device_destroy(sec_class, 0);
-	}
-#endif
 	v4l2_device_unregister_subdev(sd);
 	kfree(to_state(sd));
 
