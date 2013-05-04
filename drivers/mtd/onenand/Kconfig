@@ -37,12 +37,6 @@ config MTD_ONENAND_SAMSUNG
 	  Support for a OneNAND flash device connected to an Samsung SOC
 	  S3C64XX/S5PC1XX controller.
 
-config MTD_ONENAND_SAMSUNG_PIT
-	bool "Use PIT for Samsung OneNAND partition decoding"
-	depends on MTD_ONENAND_SAMSUNG
-	help
-	  Decode MTD partitions using proprietary Samsung PIT.
-
 config MTD_ONENAND_OTP
 	bool "OneNAND OTP Support"
 	select HAVE_MTD_OTP
